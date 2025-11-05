@@ -84,7 +84,10 @@ class Homescreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {},
         icon: Icon(Icons.bluetooth_searching_rounded, size: mq.height * 0.03),
-        label: Text('Scan', style: TextStyle(fontSize: mq.height * 0.02)),
+        label: Text(
+          'Scan Devices',
+          style: TextStyle(fontSize: mq.height * 0.02),
+        ),
       ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

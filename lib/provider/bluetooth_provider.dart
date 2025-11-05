@@ -1,0 +1,89 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'ble_provider.dart';
+import 'classic_bluetooth_provider.dart';
+
+class BluetoothProvider extends ChangeNotifier {
+  final BleProvider _bleProvider = BleProvider();
+  final ClassicBluetoothProvider _classicBluetoothProvider =
+      ClassicBluetoothProvider();
+
+  bool _isBleMode = true;
+  bool get isBleMode => _isBleMode;
+
+  // Unified Data Stream
+  StreamController<List<int>> _incomingDataController =
+      StreamController.broadcast();
+  Stream<List<int>> get incomingData => _incomingDataController.stream;
+
+  void _forwardData(List<int> data) {
+    _incomingDataController.add(data);
+  }
+
+  void toggleBleMode() {
+    _isBleMode = !_isBleMode;
+    notifyListeners();
+  }
+
+  void startScan() {
+    if (isBleMode) {
+      _bleProvider.startScan();
+    } else {
+      _classicBluetoothProvider.startScan();
+    }
+  }
+
+  void stopScan() {
+    if (isBleMode) {
+      _bleProvider.stopScan();
+    } else {
+      _classicBluetoothProvider.stopScan();
+    }
+  }
+
+  void connectToDevice(dynamic device) {
+    if (isBleMode) {
+      _bleProvider.connectToBleDevice(device);
+    } else {
+      _classicBluetoothProvider.connectToClassicBDevice(device);
+      // Listen to incoming data from Classic BT
+      _classicBluetoothProvider.classicDataStream.listen(_forwardData);
+    }
+  }
+
+  void disconnect() {
+    if (isBleMode) {
+      _bleProvider.disconnect();
+    } else {
+      _classicBluetoothProvider.disconnect();
+    }
+  }
+
+  // Ble Characteristics
+  void subscribeToBleCharacteristic({
+    required dynamic serviceId,
+    required dynamic characteristicId,
+  }) {
+    if (!_isBleMode) return;
+
+    _bleProvider.subscribeToCharacteristic(
+      serviceId: serviceId,
+      characteristicId: characteristicId,
+      onData: _forwardData, // Forward BLE data to unified stream
+    );
+  }
+
+  void unsubscribeFromBleCharacteristic() {
+    if (!_isBleMode) return;
+    _bleProvider.unsubscribeFromCharacteristic();
+  }
+
+  @override
+  void dispose() {
+    _bleProvider.dispose();
+    _classicBluetoothProvider.dispose();
+    _incomingDataController.close();
+    super.dispose();
+  }
+}
