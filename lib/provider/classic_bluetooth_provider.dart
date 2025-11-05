@@ -88,6 +88,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
           notifyListeners();
         },
       );
+      notifyListeners();
     } catch (e) {
       debugPrint('Connection error: $e');
     }
