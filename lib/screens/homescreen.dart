@@ -1,4 +1,5 @@
 import 'package:blu_mat/Theme/theme.dart';
+import 'package:blu_mat/provider/bluetooth_provider.dart';
 import 'package:blu_mat/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,8 +22,22 @@ class Homescreen extends StatelessWidget {
           child: Image.asset('assets/images/icon.png'),
         ),
         actions: [
+          // Toggle to Switch between Bluetooth Modes
+          IconButton(
+            onPressed: context.read<BluetoothProvider>().toggleBleMode,
+            tooltip: 'bluetooth toggler',
+            icon: Selector<BluetoothProvider, bool>(
+              selector: (context, provider) => provider.isBleMode,
+              builder: (context, isBleMode, _) => isBleMode
+                  ? const Icon(Icons.bluetooth)
+                  : const Icon(Icons.bluetooth_audio),
+            ),
+          ),
+
+          // Toggle to Switch Themes
           IconButton(
             onPressed: context.read<ThemeProvider>().themeChanger,
+            tooltip: 'theme toggler',
             icon: Selector<ThemeProvider, IconData>(
               selector: (context, provider) => provider.themeIcon,
               builder: (context, themeIcon, _) => Icon(themeIcon),
@@ -41,15 +56,16 @@ class Homescreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               // crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'Connection: ',
-                  style: TextStyle(fontSize: mq.height * 0.03),
+                Selector<BluetoothProvider, bool>(
+                  selector: (context, provider) => provider.isBleMode,
+                  builder: (context, isBleMode, _) => Text(
+                    isBleMode
+                        ? 'Connection to BLE Device: '
+                        : 'Connection to Classic Device',
+                    style: TextStyle(fontSize: mq.height * 0.024),
+                  ),
                 ),
                 SizedBox(width: mq.width * 0.008),
-                Image.asset(
-                  'assets/images/green_dot.png',
-                  height: mq.height * 0.045,
-                ),
               ],
             ),
           ),
@@ -61,7 +77,7 @@ class Homescreen extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             child: Container(
               width: double.infinity,
-              height: mq.height * 0.6,
+              height: mq.height * 0.7,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.vertical(
@@ -71,9 +87,38 @@ class Homescreen extends StatelessWidget {
 
               child: Padding(
                 padding: EdgeInsets.only(top: mq.height * 0.024),
-                child: ListView.builder(
-                  itemCount: 2,
-                  itemBuilder: (context, index) => const CustomCard(),
+                // Bluetooth List Builder
+                child: Consumer<BluetoothProvider>(
+                  builder: (context, value, child) => ListView.builder(
+                    itemCount: value.devices.length,
+                    itemBuilder: (context, index) {
+                      final device = value.devices[index];
+                      return CustomCard(
+                        deviceName: device.name ?? 'Unknown Device',
+                        deviceId: value.isBleMode ? device.id : device.address,
+                        isConnected:
+                            value.connectedDevice != null &&
+                            (value.isBleMode
+                                ? device.id == value.connectedDevice.id
+                                : device.address ==
+                                      value.connectedDevice.address),
+                        onTap: () {
+                          final isThisDeviceConnected =
+                              value.connectedDevice != null &&
+                              (value.isBleMode
+                                  ? value.connectedDevice.id == device.id
+                                  : value.connectedDevice.address ==
+                                        device.address);
+
+                          if (isThisDeviceConnected) {
+                            value.disconnect();
+                          } else {
+                            value.connectToDevice(device);
+                          }
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -81,12 +126,20 @@ class Homescreen extends StatelessWidget {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        icon: Icon(Icons.bluetooth_searching_rounded, size: mq.height * 0.03),
-        label: Text(
-          'Scan Devices',
-          style: TextStyle(fontSize: mq.height * 0.02),
+      floatingActionButton: Consumer<BluetoothProvider>(
+        builder: (context, value, child) => FloatingActionButton.extended(
+          onPressed: () {
+            value.isScanning ? value.stopScan() : value.startScan();
+          },
+          icon: Icon(Icons.bluetooth_searching_rounded, size: mq.height * 0.03),
+          label: Text(
+            value.isScanning
+                ? 'Stop Scanning'
+                : (value.isBleMode
+                      ? 'Scan Ble Devices'
+                      : 'Scan Classic Devices'),
+            style: TextStyle(fontSize: mq.height * 0.02),
+          ),
         ),
       ),
 

@@ -4,12 +4,14 @@ class CustomCard extends StatelessWidget {
   final String deviceName;
   final String deviceId;
   final bool isConnected;
+  final VoidCallback onTap;
 
   const CustomCard({
     super.key,
     this.deviceName = 'Unknown Device',
     this.deviceId = '00:00:AA:00:00:AA',
     this.isConnected = false,
+    required this.onTap,
   });
 
   @override
@@ -50,7 +52,7 @@ class CustomCard extends StatelessWidget {
 
         // Card Button
         trailing: ElevatedButton(
-          onPressed: () {},
+          onPressed: onTap,
           style: ElevatedButton.styleFrom(
             backgroundColor: isConnected
                 ? const Color.fromARGB(255, 0, 186, 0)

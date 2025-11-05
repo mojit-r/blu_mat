@@ -4,10 +4,33 @@ import 'package:flutter/material.dart';
 import 'ble_provider.dart';
 import 'classic_bluetooth_provider.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
+Future<bool> requestBlePermissions() async {
+  if (await Permission.bluetoothScan.request().isGranted &&
+      await Permission.bluetoothConnect.request().isGranted &&
+      await Permission.locationWhenInUse.request().isGranted) {
+    return true;
+  }
+  return false;
+}
+
 class BluetoothProvider extends ChangeNotifier {
   final BleProvider _bleProvider = BleProvider();
   final ClassicBluetoothProvider _classicBluetoothProvider =
       ClassicBluetoothProvider();
+
+  BluetoothProvider() {
+    // Forward BLE provider changes
+    _bleProvider.addListener(() {
+      notifyListeners();
+    });
+
+    // Forward Classic Bluetooth provider changes
+    _classicBluetoothProvider.addListener(() {
+      notifyListeners();
+    });
+  }
 
   bool _isBleMode = true;
   bool get isBleMode => _isBleMode;
@@ -26,7 +49,46 @@ class BluetoothProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startScan() {
+  // scanning Devices
+  bool get isScanning {
+    if (isBleMode) {
+      return _bleProvider.isBleScanning;
+    } else {
+      return _classicBluetoothProvider.isClassicBScanning;
+    }
+  }
+
+  // scanned Devices
+  List<dynamic> get devices {
+    if (isBleMode) {
+      return _bleProvider.bleDevices;
+    } else {
+      return _classicBluetoothProvider.classicBDevices;
+    }
+  }
+
+  // Connected Device
+  dynamic get connectedDevice {
+    if (isBleMode) {
+      return _bleProvider.bleConnectedDevice;
+    } else {
+      return _classicBluetoothProvider.classicBConnectedDevice;
+    }
+  }
+
+  // isConnected Flad
+  bool get isConnected {
+    if (isBleMode) {
+      return _bleProvider.isBleConnected;
+    } else {
+      return _classicBluetoothProvider.isClassicBConnected;
+    }
+  }
+
+  void startScan() async {
+    final granted = await requestBlePermissions();
+    if (!granted) return; // Stop scan if permissions not granted
+
     if (isBleMode) {
       _bleProvider.startScan();
     } else {

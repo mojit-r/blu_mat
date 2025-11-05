@@ -38,7 +38,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
       BluetoothDiscoveryResult result,
     ) {
       final device = result.device;
-      if (classicBDevices.any((d) => d.address == device.address)) {
+      if (!classicBDevices.any((d) => d.address == device.address)) {
         classicBDevices.add(device);
         notifyListeners();
       }
@@ -49,6 +49,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
     await _classicBScanSubscription?.cancel();
     _classicBScanSubscription = null;
     _isClassicBScanning = false;
+    notifyListeners();
   }
 
   // --------------

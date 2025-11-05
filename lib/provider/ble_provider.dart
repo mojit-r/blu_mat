@@ -72,6 +72,8 @@ class BleProvider extends ChangeNotifier {
   // Ble Data Subscription
   StreamSubscription<List<int>>? _bleDataSubscription;
 
+  bool _shouldAutoReconnect = true;
+
   // Connect to Ble Device
   void connectToBleDevice(DiscoveredDevice device) {
     if (_bleConnectedDevice?.id == device.id && isBleConnected) return;
@@ -91,7 +93,8 @@ class BleProvider extends ChangeNotifier {
             notifyListeners();
 
             // Auto-reconnect
-            if (update.connectionState == DeviceConnectionState.disconnected) {
+            if (update.connectionState == DeviceConnectionState.disconnected &&
+                _shouldAutoReconnect) {
               Future.delayed(const Duration(seconds: 2), () {
                 if (_bleConnectedDevice?.id == device.id)
                   connectToBleDevice(device);
@@ -142,6 +145,7 @@ class BleProvider extends ChangeNotifier {
 
   // Disconnect
   Future<void> disconnect() async {
+    _shouldAutoReconnect = false;
     await _bleDataSubscription?.cancel();
     _bleDataSubscription = null;
     await _bleConnection?.cancel();
@@ -149,6 +153,7 @@ class BleProvider extends ChangeNotifier {
     _bleConnectionState = DeviceConnectionState.disconnected;
     _bleConnectedDevice = null;
     notifyListeners();
+    _shouldAutoReconnect = true;
   }
 
   @override
