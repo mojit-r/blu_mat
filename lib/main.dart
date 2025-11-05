@@ -1,8 +1,7 @@
-import 'package:blu_mat/provider/%20bluetooth_provider.dart';
-import 'package:blu_mat/provider/connection_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '/provider/%20bluetooth_provider.dart';
 import 'Theme/theme.dart';
 import 'screens/homescreen.dart';
 
@@ -11,7 +10,6 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => ConnectionProvider()),
         ChangeNotifierProvider(create: (context) => BluetoothProvider()),
       ],
       child: const MainApp(),
