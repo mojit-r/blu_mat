@@ -104,14 +104,15 @@ class BluetoothProvider extends ChangeNotifier {
     }
   }
 
-  void connectToDevice(dynamic device) {
+  void connectToDevice(dynamic device) async {
     if (isBleMode) {
       _bleProvider.connectToBleDevice(device);
     } else {
-      _classicBluetoothProvider.connectToClassicBDevice(device);
+      await _classicBluetoothProvider.connectToClassicBDevice(device);
       // Listen to incoming data from Classic BT
       _classicBluetoothProvider.classicDataStream.listen(_forwardData);
     }
+    notifyListeners();
   }
 
   void disconnect() {

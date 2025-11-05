@@ -61,6 +61,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
 
   bool get isClassicBConnected => _classicBConnection?.isConnected ?? false;
 
+  // connect to Devices
   Future<void> connectToClassicBDevice(BluetoothDevice device) async {
     if (_classicBConnectedDevice?.address == device.address &&
         isClassicBConnected)
