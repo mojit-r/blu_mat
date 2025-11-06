@@ -19,6 +19,7 @@ class CustomCard extends StatelessWidget {
     // The Size of the Screen
     Size mq = MediaQuery.of(context).size;
 
+    // Card
     return Card(
       margin: EdgeInsets.fromLTRB(
         mq.width * 0.03,

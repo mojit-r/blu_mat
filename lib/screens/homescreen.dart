@@ -1,8 +1,9 @@
-import 'package:blu_mat/Theme/theme.dart';
-import 'package:blu_mat/provider/bluetooth_provider.dart';
-import 'package:blu_mat/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '/Theme/theme.dart';
+import '/provider/bluetooth_provider.dart';
+import '/widgets/custom_card.dart';
 
 class Homescreen extends StatelessWidget {
   const Homescreen({super.key});
@@ -87,12 +88,13 @@ class Homescreen extends StatelessWidget {
 
               child: Padding(
                 padding: EdgeInsets.only(top: mq.height * 0.024),
-                // Bluetooth List Builder
+                // Bluetooth List View Builder
                 child: Consumer<BluetoothProvider>(
                   builder: (context, value, child) => ListView.builder(
                     itemCount: value.devices.length,
                     itemBuilder: (context, index) {
                       final device = value.devices[index];
+                      // custom Card
                       return CustomCard(
                         deviceName: device.name ?? 'Unknown Device',
                         deviceId: value.isBleMode ? device.id : device.address,
@@ -134,7 +136,7 @@ class Homescreen extends StatelessWidget {
           icon: Icon(Icons.bluetooth_searching_rounded, size: mq.height * 0.03),
           label: Text(
             value.isScanning
-                ? 'Stop Scanning'
+                ? (value.isBleMode ? 'Stop Scanning' : 'Scanning...')
                 : (value.isBleMode
                       ? 'Scan Ble Devices'
                       : 'Scan Classic Devices'),
