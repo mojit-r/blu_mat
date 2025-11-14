@@ -9,7 +9,7 @@ class BleProvider extends ChangeNotifier {
   BleProvider() {
     Timer.periodic(const Duration(seconds: 5), (timer) {
       tryReconnect();
-      });
+    });
   }
 
   // --------------

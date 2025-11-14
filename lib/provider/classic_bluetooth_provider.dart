@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class ClassicBluetoothProvider extends ChangeNotifier {
-
   // ClassicBluetoothProvider Constructor
   ClassicBluetoothProvider() {
-    Timer.periodic(const Duration(seconds: 5), (timer) {});
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      tryReconnect();
+    });
   }
 
   final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
