@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class ClassicBluetoothProvider extends ChangeNotifier {
+
+  // ClassicBluetoothProvider Constructor
+  ClassicBluetoothProvider() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {});
+  }
+
   final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
 
   // Stream for incoming Classic BT data
@@ -61,6 +67,9 @@ class ClassicBluetoothProvider extends ChangeNotifier {
 
   bool get isClassicBConnected => _classicBConnection?.isConnected ?? false;
 
+  bool _userInitiatedDisconnect = false;
+  BluetoothDevice? _lastClassicBConnectedDevice;
+
   // connect to Devices
   Future<void> connectToClassicBDevice(BluetoothDevice device) async {
     if (_classicBConnectedDevice?.address == device.address &&
@@ -72,6 +81,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
     try {
       _classicBConnection = await BluetoothConnection.toAddress(device.address);
       _classicBConnectedDevice = device;
+      _lastClassicBConnectedDevice = device;
       notifyListeners();
 
       _classicBConnection!.input!.listen(
@@ -94,10 +104,26 @@ class ClassicBluetoothProvider extends ChangeNotifier {
     }
   }
 
+  // tryReconnecting the existing devices feature
+  Future<void> tryReconnect() async {
+    // 1. Do not reconnect if user intentionally disconnected
+    if (_userInitiatedDisconnect) return;
+    // 2. Do not reconnect while scanning
+    if (isClassicBScanning) return;
+    // 3. No last device to reconnect to
+    if (_lastClassicBConnectedDevice == null) return;
+    // 4. If already connected — nothing to do
+    if (isClassicBConnected) return;
+    connectToClassicBDevice(_lastClassicBConnectedDevice!);
+  }
+
+  // Disconnect
   Future<void> disconnect() async {
+    _userInitiatedDisconnect = true;
     await _classicBConnection?.close();
     _classicBConnection = null;
     _classicBConnectedDevice = null;
+    _lastClassicBConnectedDevice = null;
     notifyListeners();
   }
 

@@ -6,6 +6,12 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 class BleProvider extends ChangeNotifier {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
 
+  BleProvider() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      tryReconnect();
+      });
+  }
+
   // --------------
   // Scanning
   // --------------
@@ -72,7 +78,10 @@ class BleProvider extends ChangeNotifier {
   // Ble Data Subscription
   StreamSubscription<List<int>>? _bleDataSubscription;
 
+  // variables for Reconnecting
   bool _shouldAutoReconnect = true;
+  bool _userInitiatedDisconnect = false;
+  DiscoveredDevice? _lastBleConnectedDevice;
 
   // Connect to Ble Device
   void connectToBleDevice(DiscoveredDevice device) {
@@ -80,6 +89,7 @@ class BleProvider extends ChangeNotifier {
 
     _bleConnection?.cancel();
     _bleConnectedDevice = device;
+    _lastBleConnectedDevice = device;
     notifyListeners();
 
     _bleConnection = _ble
@@ -143,8 +153,26 @@ class BleProvider extends ChangeNotifier {
     debugPrint('Unsubscribed from BLE characteristic');
   }
 
+  // tryReconnecting the existing devices feature
+  Future<void> tryReconnect() async {
+    // 1. Do not reconnect if user intentionally disconnected
+    if (_userInitiatedDisconnect) return;
+    // 2. Do not reconnect while scanning
+    if (isBleScanning) return;
+    // 3. No last device to reconnect to
+    if (_lastBleConnectedDevice == null) return;
+    // 4. If already connected — nothing to do
+    if (isBleConnected) return;
+    if (!_userInitiatedDisconnect &&
+        _shouldAutoReconnect &&
+        _lastBleConnectedDevice != null) {
+      connectToBleDevice(_lastBleConnectedDevice!);
+    }
+  }
+
   // Disconnect
   Future<void> disconnect() async {
+    _userInitiatedDisconnect = true;
     _shouldAutoReconnect = false;
     await _bleDataSubscription?.cancel();
     _bleDataSubscription = null;
@@ -152,6 +180,7 @@ class BleProvider extends ChangeNotifier {
     _bleConnection = null;
     _bleConnectionState = DeviceConnectionState.disconnected;
     _bleConnectedDevice = null;
+    _lastBleConnectedDevice = null;
     notifyListeners();
     _shouldAutoReconnect = true;
   }
