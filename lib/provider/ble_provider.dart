@@ -158,7 +158,7 @@ class BleProvider extends ChangeNotifier {
     // 1. Do not reconnect if user intentionally disconnected
     if (_userInitiatedDisconnect) return;
     // 2. Do not reconnect while scanning
-    if (isBleScanning) return;
+    // if (isBleScanning) return;
     // 3. No last device to reconnect to
     if (_lastBleConnectedDevice == null) return;
     // 4. If already connected — nothing to do
@@ -166,6 +166,7 @@ class BleProvider extends ChangeNotifier {
     if (!_userInitiatedDisconnect &&
         _shouldAutoReconnect &&
         _lastBleConnectedDevice != null) {
+      stopScan();
       connectToBleDevice(_lastBleConnectedDevice!);
     }
   }
