@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -77,11 +78,12 @@ class ClassicBluetoothProvider extends ChangeNotifier {
         isClassicBConnected)
       return;
 
-    await disconnect();
+    await disconnect(userInitiated: false);
 
     try {
       _classicBConnection = await BluetoothConnection.toAddress(device.address);
       _classicBConnectedDevice = device;
+      _userInitiatedDisconnect = false;
       _lastClassicBConnectedDevice = device;
       notifyListeners();
 
@@ -115,16 +117,20 @@ class ClassicBluetoothProvider extends ChangeNotifier {
     if (_lastClassicBConnectedDevice == null) return;
     // 4. If already connected — nothing to do
     if (isClassicBConnected) return;
+
     connectToClassicBDevice(_lastClassicBConnectedDevice!);
   }
 
   // Disconnect
-  Future<void> disconnect() async {
-    _userInitiatedDisconnect = true;
+  Future<void> disconnect({bool userInitiated = false}) async {
+    _userInitiatedDisconnect = userInitiated;
     await _classicBConnection?.close();
     _classicBConnection = null;
     _classicBConnectedDevice = null;
-    _lastClassicBConnectedDevice = null;
+    if (_userInitiatedDisconnect) {
+      _lastClassicBConnectedDevice =
+          null; // this will preveny storing previously connected devices
+    }
     notifyListeners();
   }
 

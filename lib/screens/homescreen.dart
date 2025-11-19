@@ -57,6 +57,7 @@ class Homescreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               // crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Header Connection Text
                 Selector<BluetoothProvider, bool>(
                   selector: (context, provider) => provider.isBleMode,
                   builder: (context, isBleMode, _) => Text(

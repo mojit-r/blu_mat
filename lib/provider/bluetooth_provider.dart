@@ -119,7 +119,7 @@ class BluetoothProvider extends ChangeNotifier {
     if (isBleMode) {
       _bleProvider.disconnect();
     } else {
-      _classicBluetoothProvider.disconnect();
+      _classicBluetoothProvider.disconnect(userInitiated: true);
     }
   }
 
