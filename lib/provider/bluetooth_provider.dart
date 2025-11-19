@@ -46,6 +46,8 @@ class BluetoothProvider extends ChangeNotifier {
 
   void toggleBleMode() {
     _isBleMode = !_isBleMode;
+    stopScan();
+    disconnect();
     notifyListeners();
   }
 
