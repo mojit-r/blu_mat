@@ -116,7 +116,7 @@ class Homescreen extends StatelessWidget {
                           if (isThisDeviceConnected) {
                             value.disconnect();
 
-                            // SnackBar(Toast)
+                            // SnackBar(Toast) while Disconnection
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: Theme.of(
@@ -125,7 +125,9 @@ class Homescreen extends StatelessWidget {
                                 content: Text(
                                   'If your device is a Bluetooth audio device (headphones/earbuds), system audio may remain connected.  This only disconnects the data channel.',
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
                                   ),
                                 ),
                                 duration: const Duration(seconds: 5),
@@ -159,6 +161,12 @@ class Homescreen extends StatelessWidget {
                       : 'Scan Classic Devices'),
             style: TextStyle(fontSize: mq.height * 0.02),
           ),
+          backgroundColor: value.isScanning
+              ? Theme.of(context).colorScheme.errorContainer
+              : null,
+          foregroundColor: value.isScanning
+              ? Theme.of(context).colorScheme.onErrorContainer
+              : null,
         ),
       ),
 
