@@ -115,6 +115,22 @@ class Homescreen extends StatelessWidget {
 
                           if (isThisDeviceConnected) {
                             value.disconnect();
+
+                            // SnackBar(Toast)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.errorContainer,
+                                content: Text(
+                                  'If your device is a Bluetooth audio device (headphones/earbuds), system audio may remain connected.  This only disconnects the data channel.',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
                           } else {
                             value.connectToDevice(device);
                           }
