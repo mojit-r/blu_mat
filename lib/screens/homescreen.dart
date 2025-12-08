@@ -117,22 +117,24 @@ class Homescreen extends StatelessWidget {
                             value.disconnect();
 
                             // SnackBar(Toast) while Disconnection
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.errorContainer,
-                                content: Text(
-                                  'If your device is a Bluetooth audio device (headphones/earbuds), system audio may remain connected.  This only disconnects the data channel.',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onErrorContainer,
+                            if (!value.isBleMode) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.errorContainer,
+                                  content: Text(
+                                    'If your device is a Bluetooth audio device (headphones/earbuds), system audio may remain connected.  This only disconnects the data channel.',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onErrorContainer,
+                                    ),
                                   ),
+                                  duration: const Duration(seconds: 5),
                                 ),
-                                duration: const Duration(seconds: 5),
-                              ),
-                            );
+                              );
+                            }
                           } else {
                             value.connectToDevice(device);
                           }
