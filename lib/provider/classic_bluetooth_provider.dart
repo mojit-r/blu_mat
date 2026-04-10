@@ -128,7 +128,7 @@ class ClassicBluetoothProvider extends ChangeNotifier {
     _classicBConnectedDevice = null;
     if (_userInitiatedDisconnect) {
       _lastClassicBConnectedDevice =
-          null; // this will preveny storing previously connected devices
+          null; // remove previously connected devices if it's userInitiated disconnect
     }
     notifyListeners();
   }

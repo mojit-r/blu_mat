@@ -36,8 +36,7 @@ class BluetoothProvider extends ChangeNotifier {
   bool get isBleMode => _isBleMode;
 
   // Unified Data Stream
-  StreamController<List<int>> _incomingDataController =
-      StreamController.broadcast();
+  final StreamController<List<int>> _incomingDataController = StreamController.broadcast();
   Stream<List<int>> get incomingData => _incomingDataController.stream;
 
   void _forwardData(List<int> data) {
@@ -119,7 +118,7 @@ class BluetoothProvider extends ChangeNotifier {
 
   void disconnect() {
     if (isBleMode) {
-      _bleProvider.disconnect();
+      _bleProvider.disconnect(userInitiated: true);
     } else {
       _classicBluetoothProvider.disconnect(userInitiated: true);
     }
