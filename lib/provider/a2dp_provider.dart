@@ -17,7 +17,7 @@ class A2dpProvider extends ChangeNotifier {
   // Connection State
   // -----------------------
   StreamSubscription? _sub;
-  
+
   String? _a2dpConnectedAddress;
   String? get a2dpConnectedAddress => _a2dpConnectedAddress;
 
@@ -28,6 +28,9 @@ class A2dpProvider extends ChangeNotifier {
   bool get isA2dpConnected => _a2dpConnectedAddress != null;
 
   bool isAudioConnected = false;
+
+  int _retryCount = 0;
+  final int _maxRetries = 3;
 
   // A2DP Provider Constructor
   A2dpProvider() {
@@ -98,17 +101,14 @@ class A2dpProvider extends ChangeNotifier {
       final success = await A2dpService.connect(address);
 
       if (success) {
-        _a2dpConnectedAddress = address;
         _lastA2dpConnectedAddress = address;
         _userInitiatedDisconnect = false;
       }
-      debugPrint(
-        success ? '✅ A2DP connect triggered' : '❌ A2DP connect failed',
-      );
-      notifyListeners();
+      debugPrint(success ? '✅ A2DP connect triggered' : '❌ A2DP connect failed');
     } catch (e) {
       debugPrint('Connection error: $e');
     }
+    notifyListeners();
   }
 
   // tryReconnecting the existing devices feature
@@ -121,7 +121,10 @@ class A2dpProvider extends ChangeNotifier {
     if (_lastA2dpConnectedAddress == null) return;
     // 4. If already connected — nothing to do
     if (isA2dpConnected) return;
+    // 5. if within the retry range
+    if (_retryCount >= _maxRetries) return;
 
+    _retryCount++;
     connectToA2dpDevice(_lastA2dpConnectedAddress!);
   }
 
@@ -146,6 +149,7 @@ class A2dpProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _sub?.cancel();
     stopScan();
     disconnect();
     super.dispose();
