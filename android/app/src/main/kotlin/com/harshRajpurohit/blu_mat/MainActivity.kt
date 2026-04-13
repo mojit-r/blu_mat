@@ -5,17 +5,20 @@ import android.view.Menu
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.EventChannel
 
 class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "a2dp_channel"
-    private lateinit var a2dpManager: A2dpManager
+    private val EVENT_CHANNEL = "bluetooth_events"
+
+    private lateinit var bluetoothManager: BluetoothManager
+    private var eventSink: EventChannel.EventSink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        a2dpManager = A2dpManager(this)
-        a2dpManager.init()
+        bluetoothManager = BluetoothManager(this)
 
         // A2DP channel
         MethodChannel(
@@ -26,7 +29,7 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
 
                 "scanClassic" -> {
-                    val devices = a2dpManager.scanDevices()
+                    val devices = bluetoothManager.scanA2dp()
                     result.success(devices)
                 }
 
@@ -36,13 +39,11 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGS", "Address missing", null)
                         return@setMethodCallHandler
                     }
-                    val success = a2dpManager.connect(address)
+                    val success = bluetoothManager.connectA2dp(address)
 
-                    if (success) {
-                        startService(
-                            Intent(this, A2dpService::class.java)
-                        )
-                    }
+                    // if (success) {
+                    //     startService(Intent(this, A2dpService::class.java))
+                    // }
                     result.success(success)
                 }
 
@@ -52,21 +53,33 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGS", "Address missing",null)
                         return@setMethodCallHandler
                     }
-                    val success = a2dpManager.disconnect(address)
+                    val success = bluetoothManager.disconnectA2dp(address)
 
-                    if (success) {
-                        stopService(Intent(this, A2dpService::class.java))  
-                    }
+                    // if (success) {
+                    //     stopService(Intent(this, A2dpService::class.java))  
+                    // }
                     result.success(success)
                 }
 
                 else -> result.notImplemented()
             }
         }
-    }
 
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
+        .setStreamHandler(object : EventChannel.StreamHandler {
+
+            override fun onListen(arguments: Any?, sink: EventChannel.EventSink?) {
+                bluetoothManager.setEventSink(sink)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                bluetoothManager.setEventSink(null)
+            }
+        })
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
-        a2dpManager.release()
+        bluetoothManager.release()
     }
 }

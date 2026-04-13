@@ -4,12 +4,6 @@ import 'package:blu_mat/services/a2dp_service.dart';
 import 'package:flutter/material.dart';
 
 class A2dpProvider extends ChangeNotifier {
-  A2dpProvider() {
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      tryReconnect();
-    });
-  }
-
   // --------------
   // Devices (from native scan)
   // --------------
@@ -22,6 +16,8 @@ class A2dpProvider extends ChangeNotifier {
   // -----------------------
   // Connection State
   // -----------------------
+  StreamSubscription? _sub;
+  
   String? _a2dpConnectedAddress;
   String? get a2dpConnectedAddress => _a2dpConnectedAddress;
 
@@ -33,6 +29,32 @@ class A2dpProvider extends ChangeNotifier {
 
   bool isAudioConnected = false;
 
+  // A2DP Provider Constructor
+  A2dpProvider() {
+    _sub = A2dpService.events.listen((event) {
+      final type = event['type'];
+
+      if (type == 'A2DP_CONNECTION') {
+        final state = event['state'];
+        final address = event['address'];
+        debugPrint('EVENT: $state | $address');
+
+        if (state == 'CONNECTED') {
+          _a2dpConnectedAddress = address;
+          isAudioConnected = true;
+        } else if (state == 'DISCONNECTED') {
+          _a2dpConnectedAddress = null;
+          isAudioConnected = false;
+        }
+        notifyListeners();
+      }
+    });
+
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      tryReconnect();
+    });
+  }  
+  
   // -----------------------
   // Scan (paired devices)
   // -----------------------

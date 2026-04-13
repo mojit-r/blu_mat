@@ -7,8 +7,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import io.flutter.plugin.common.EventChannel
 
-class A2dpManager(private val context: Context) {
+import com.harshRajpurohit.blu_mat.A2dpManager
+
+class A2dpManager(private val context: Context, private var eventSink: EventChannel.EventSink?) {
 
     private var bluetoothA2dp: BluetoothA2dp? = null
     private val bluetoothAdapter: BluetoothAdapter? =
@@ -18,7 +24,6 @@ class A2dpManager(private val context: Context) {
     private var isReady = false
 
     private val serviceListener = object : BluetoothProfile.ServiceListener {
-
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
             if (profile == BluetoothProfile.A2DP) {
                 bluetoothA2dp = proxy as BluetoothA2dp
@@ -42,26 +47,60 @@ class A2dpManager(private val context: Context) {
             serviceListener,
             BluetoothProfile.A2DP
         )
+        val filter = IntentFilter(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
+        context.registerReceiver(receiver, filter)
+    }
+
+    fun setEventSink(sink: EventChannel.EventSink?) {
+        eventSink = sink
+    }
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+
+            if (intent?.action == BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED) {
+
+                val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1)
+                val device: BluetoothDevice? =
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+
+                val stateStr = when (state) {
+                    BluetoothProfile.STATE_CONNECTED -> "CONNECTED"
+                    BluetoothProfile.STATE_DISCONNECTED -> "DISCONNECTED"
+                    BluetoothProfile.STATE_CONNECTING -> "CONNECTING"
+                    BluetoothProfile.STATE_DISCONNECTING -> "DISCONNECTING"
+                    else -> "UNKNOWN"
+                }
+
+                eventSink?.success(
+                    mapOf(
+                        "type" to "A2DP_CONNECTION",
+                        "state" to stateStr,
+                        "address" to device?.address
+                    )
+                )
+            }
+        }
     }
 
     fun scanDevices(): List<Map<String, String>> {
-    val results = mutableListOf<Map<String, String>>()
-
-    if (!hasPermission()) return results
-
-    val bondedDevices = bluetoothAdapter?.bondedDevices ?: return results
-
-    for (device in bondedDevices) {
-        results.add(
-            mapOf(
-                "name" to (device.name ?: "Unknown"),
-                "address" to device.address
+        val results = mutableListOf<Map<String, String>>()
+    
+        if (!hasPermission()) return results
+    
+        val bondedDevices = bluetoothAdapter?.bondedDevices ?: return results
+    
+        for (device in bondedDevices) {
+            results.add(
+                mapOf(
+                    "name" to (device.name ?: "Unknown"),
+                    "address" to device.address
+                )
             )
-        )
+        }
+    
+        return results
     }
-
-    return results
-}
 
     fun connect(deviceAddress: String): Boolean {
         if (!isReady || bluetoothA2dp == null) {
@@ -76,6 +115,13 @@ class A2dpManager(private val context: Context) {
         val result = invokeHiddenMethod("connect", device)
         if (result) {
             lastConnectedAddress = deviceAddress
+            eventSink?.success(
+                mapOf(
+                    "type" to "A2DP_CONNECTION",
+                    "state" to "CONNECTING",
+                    "address" to deviceAddress
+                )
+            )
         }
         return result
     }
@@ -87,7 +133,17 @@ class A2dpManager(private val context: Context) {
         val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
             ?: return false
 
-        return invokeHiddenMethod("disconnect", device)
+        val success = invokeHiddenMethod("disconnect", device)
+        if (success) {
+            eventSink?.success(
+                mapOf(
+                    "type" to "A2DP_CONNECTION",
+                    "state" to "DISCONNECTED",
+                    "address" to deviceAddress
+                )
+            )
+        }
+        return success
     }
 
     fun disconnectLast(): Boolean {
@@ -130,5 +186,10 @@ class A2dpManager(private val context: Context) {
         )
         bluetoothA2dp = null
         isReady = false
+        try {
+            context.unregisterReceiver(receiver)
+        } catch (e: Exception) {
+            Log.e("A2DP", "Receiver already unregistered")
+        }
     }
 }
