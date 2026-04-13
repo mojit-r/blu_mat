@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'Theme/theme.dart';
 import 'provider/ble_provider.dart';
 import 'provider/bluetooth_provider.dart';
-import 'provider/classic_bluetooth_provider.dart';
+import 'provider/a2dp_provider.dart';
 import 'screens/homescreen.dart';
 
 void main() {
@@ -14,7 +14,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => BluetoothProvider()),
         ChangeNotifierProvider(create: (context) => BleProvider()),
-        ChangeNotifierProvider(create: (context) => ClassicBluetoothProvider()),
+        ChangeNotifierProvider(create: (context) => A2dpProvider()),
       ],
       child: const MainApp(),
     ),

@@ -18,10 +18,10 @@ dependencies:
   # flutter_blue_plus: ^2.0.0    # it was the simpler basic uses
 
   # Package to Bluetooth Classic Devices (old)
-  flutter_bluetooth_serial: ^0.4.0
+  # flutter_bluetooth_serial: ^0.4.0
 
   # for handling runtime permissions
-  permission_handler: ^11.3.0
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:

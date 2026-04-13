@@ -62,8 +62,8 @@ class Homescreen extends StatelessWidget {
                   selector: (context, provider) => provider.isBleMode,
                   builder: (context, isBleMode, _) => Text(
                     isBleMode
-                        ? 'Connection to BLE Device: '
-                        : 'Connection to Classic Device',
+                        ? 'Connect to BLE Device: '
+                        : 'Connect to A2DP Device',
                     style: TextStyle(fontSize: mq.height * 0.024),
                   ),
                 ),
@@ -97,44 +97,22 @@ class Homescreen extends StatelessWidget {
                       final device = value.devices[index];
                       // custom Card
                       return CustomCard(
-                        deviceName: device.name ?? 'Unknown Device',
-                        deviceId: value.isBleMode ? device.id : device.address,
+                        deviceName: value.isBleMode ? device.name ?? 'Unknown Device' : device['name'] ?? 'Unknown Device',
+                        deviceId: value.isBleMode ? device.id : device['address'],
                         isConnected:
                             value.connectedDevice != null &&
                             (value.isBleMode
                                 ? device.id == value.connectedDevice.id
-                                : device.address ==
-                                      value.connectedDevice.address),
+                                : device['address'] == value.connectedDevice),
                         onTap: () {
                           final isThisDeviceConnected =
                               value.connectedDevice != null &&
                               (value.isBleMode
                                   ? value.connectedDevice.id == device.id
-                                  : value.connectedDevice.address ==
-                                        device.address);
+                                  : value.connectedDevice == device['address']);
 
                           if (isThisDeviceConnected) {
                             value.disconnect();
-
-                            // SnackBar(Toast) while Disconnection
-                            if (!value.isBleMode) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.errorContainer,
-                                  content: Text(
-                                    'If your device is a Bluetooth audio device (headphones/earbuds), system audio may remain connected.  This only disconnects the data channel.',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onErrorContainer,
-                                    ),
-                                  ),
-                                  duration: const Duration(seconds: 5),
-                                ),
-                              );
-                            }
                           } else {
                             value.connectToDevice(device);
                           }
@@ -160,7 +138,7 @@ class Homescreen extends StatelessWidget {
                 ? (value.isBleMode ? 'Stop Scanning' : 'Scanning...')
                 : (value.isBleMode
                       ? 'Scan Ble Devices'
-                      : 'Scan Classic Devices'),
+                      : 'Scan A2DP Devices'),
             style: TextStyle(fontSize: mq.height * 0.02),
           ),
           backgroundColor: value.isScanning
