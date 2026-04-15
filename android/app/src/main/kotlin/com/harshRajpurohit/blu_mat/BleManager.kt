@@ -3,6 +3,10 @@ package com.harshRajpurohit.blu_mat
 import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.Context
+import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 import io.flutter.plugin.common.EventChannel
 
 class BleManager(private val context: Context) {
@@ -48,8 +52,20 @@ class BleManager(private val context: Context) {
     }
 
     fun startScan() {
+        if (!bluetoothAdapter.isEnabled) {
+            sendEvent(mapOf("type" to "ERROR", "message" to "Bluetooth is OFF"))
+            return
+        }
+        if (!hasBleScanPermission()) {
+            sendEvent(mapOf("type" to "ERROR", "message" to "BLE scan permission missing"))
+            return
+        }
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY) // 🔥 IMPORTANT
+            .build()
         discoveredDevices.clear()
-        scanner?.startScan(scanCallback)
+        scanner?.startScan(null, settings, scanCallback)
+        sendEvent(mapOf("type" to "BLE_STATUS", "state" to "SCAN_STARTED"))
     }
 
     fun stopScan() {
@@ -91,7 +107,7 @@ class BleManager(private val context: Context) {
                         "id" to gatt.device.address
                     )
                 )
-            }
+            } 
         }
     }
 
@@ -112,6 +128,20 @@ class BleManager(private val context: Context) {
             e.printStackTrace()
         }
         gatt = null
+    }
+
+    private fun hasBleScanPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        }
     }
 
     fun release() {

@@ -34,6 +34,12 @@ class A2dpProvider extends ChangeNotifier {
 
   // A2DP Provider Constructor
   A2dpProvider() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      tryReconnect();
+    });
+  }
+
+  void handleEvent(Map<String, dynamic> event) {
     _sub = BluetoothService.events.listen((event) {
       final type = event['type'];
 
@@ -51,10 +57,6 @@ class A2dpProvider extends ChangeNotifier {
         }
         notifyListeners();
       }
-    });
-
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      tryReconnect();
     });
   }
 

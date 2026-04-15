@@ -14,7 +14,7 @@ dependencies:
   provider: ^6.1.5+1
 
   # Pacakge to connect with BLE Devices (new)
-  flutter_reactive_ble: ^5.4.0
+  # flutter_reactive_ble: ^5.4.0  # lately we were using this
   # flutter_blue_plus: ^2.0.0    # it was the simpler basic uses
 
   # Package to Bluetooth Classic Devices (old)

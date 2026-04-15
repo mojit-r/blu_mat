@@ -97,18 +97,18 @@ class Homescreen extends StatelessWidget {
                       final device = value.devices[index];
                       // custom Card
                       return CustomCard(
-                        deviceName: value.isBleMode ? device.name ?? 'Unknown Device' : device['name'] ?? 'Unknown Device',
-                        deviceId: value.isBleMode ? device.id : device['address'],
+                        deviceName: value.isBleMode ? device['name'] ?? 'Unknown Device' : device['name'] ?? 'Unknown Device',
+                        deviceId: value.isBleMode ? device['id'] : device['address'],
                         isConnected:
                             value.connectedDevice != null &&
                             (value.isBleMode
-                                ? device.id == value.connectedDevice.id
+                                ? device['id'] == value.connectedDevice
                                 : device['address'] == value.connectedDevice),
                         onTap: () {
                           final isThisDeviceConnected =
                               value.connectedDevice != null &&
                               (value.isBleMode
-                                  ? value.connectedDevice.id == device.id
+                                  ? value.connectedDevice == device['id']
                                   : value.connectedDevice == device['address']);
 
                           if (isThisDeviceConnected) {
