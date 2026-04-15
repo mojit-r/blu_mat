@@ -9,11 +9,10 @@ import io.flutter.plugin.common.EventChannel
 
 class MainActivity : FlutterActivity() {
 
-    private val CHANNEL = "a2dp_channel"
+    private val CHANNEL = "bluetooth_channel"
     private val EVENT_CHANNEL = "bluetooth_events"
 
     private lateinit var bluetoothManager: BluetoothManager
-    private var eventSink: EventChannel.EventSink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -59,6 +58,31 @@ class MainActivity : FlutterActivity() {
                     //     stopService(Intent(this, A2dpService::class.java))  
                     // }
                     result.success(success)
+                }
+
+                "startBleScan" -> {
+                    bluetoothManager.scanBle()
+                    result.success(null)
+                }
+
+                "stopBleScan" -> {
+                    bluetoothManager.stopBleScan()
+                    result.success(null)
+                }
+
+                "connectBle" -> {
+                    val id = call.argument<String>("id")
+                    if (id == null) {
+                        result.error("INVALID_ARGS", "Device ID missing", null)
+                        return@setMethodCallHandler
+                    }
+                    bluetoothManager.connectBle(id)
+                    result.success(true)
+                }
+
+                "disconnectBle" -> {
+                    bluetoothManager.disconnectBle()
+                    result.success(true)
                 }
 
                 else -> result.notImplemented()

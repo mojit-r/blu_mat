@@ -4,25 +4,24 @@ import android.content.Context
 import io.flutter.plugin.common.EventChannel
 
 class BluetoothManager(private val context: Context) {
-    private var eventSink: EventChannel.EventSink? = null
-
-    // private val bleManager = BleManager(context, eventSink)
-    private val a2dpManager = A2dpManager(context, eventSink)
+    private val bleManager = BleManager(context)
+    private val a2dpManager = A2dpManager(context)
 
     init {
+        bleManager.init()
         a2dpManager.init()
     }
 
     fun setEventSink(sink: EventChannel.EventSink?) {
-        eventSink = sink
+        bleManager.setEventSink(sink)
         a2dpManager.setEventSink(sink)
     }
 
-    // fun scanBle() = bleManager.startScan()
-    // fun stopBleScan() = bleManager.stopScan()
+    fun scanBle() = bleManager.startScan()
+    fun stopBleScan() = bleManager.stopScan()
 
-    // fun connectBle(deviceId: String) = bleManager.connect(deviceId)
-    // fun disconnectBle() = bleManager.disconnect()
+    fun connectBle(deviceId: String) = bleManager.connect(deviceId)
+    fun disconnectBle() = bleManager.disconnect()
 
     fun scanA2dp() = a2dpManager.scanDevices()
     fun connectA2dp(address: String) = a2dpManager.connect(address)
@@ -30,6 +29,6 @@ class BluetoothManager(private val context: Context) {
 
     fun release() {
         a2dpManager.release()
-        // bleManager.release()
+        bleManager.release()
     }
 }

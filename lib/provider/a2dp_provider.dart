@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:blu_mat/services/a2dp_service.dart';
+import 'package:blu_mat/services/bluetooth_service.dart';
 import 'package:flutter/material.dart';
 
 class A2dpProvider extends ChangeNotifier {
@@ -34,7 +34,7 @@ class A2dpProvider extends ChangeNotifier {
 
   // A2DP Provider Constructor
   A2dpProvider() {
-    _sub = A2dpService.events.listen((event) {
+    _sub = BluetoothService.events.listen((event) {
       final type = event['type'];
 
       if (type == 'A2DP_CONNECTION') {
@@ -56,8 +56,8 @@ class A2dpProvider extends ChangeNotifier {
     Timer.periodic(const Duration(seconds: 5), (timer) {
       tryReconnect();
     });
-  }  
-  
+  }
+
   // -----------------------
   // Scan (paired devices)
   // -----------------------
@@ -67,7 +67,7 @@ class A2dpProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await A2dpService.scan();
+      final result = await BluetoothService.scanA2dp();
       _a2dpDevices = (result)
           .map(
             (e) => Map<String, String>.from(
@@ -98,13 +98,15 @@ class A2dpProvider extends ChangeNotifier {
 
     await disconnect(userInitiated: false);
     try {
-      final success = await A2dpService.connect(address);
+      final success = await BluetoothService.connectA2dp(address);
 
       if (success) {
         _lastA2dpConnectedAddress = address;
         _userInitiatedDisconnect = false;
       }
-      debugPrint(success ? '✅ A2DP connect triggered' : '❌ A2DP connect failed');
+      debugPrint(
+        success ? '✅ A2DP connect triggered' : '❌ A2DP connect failed',
+      );
     } catch (e) {
       debugPrint('Connection error: $e');
     }
@@ -132,7 +134,7 @@ class A2dpProvider extends ChangeNotifier {
   Future<void> disconnect({bool userInitiated = false}) async {
     _userInitiatedDisconnect = userInitiated;
     if (_a2dpConnectedAddress != null) {
-      final success = await A2dpService.disconnect(_a2dpConnectedAddress!);
+      final success = await BluetoothService.disconnectA2dp(_a2dpConnectedAddress!);
       debugPrint(
         success ? '✅ A2DP disconnect triggered' : '❌ A2DP disconnect failed',
       );

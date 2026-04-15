@@ -12,13 +12,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import io.flutter.plugin.common.EventChannel
 
-import com.harshRajpurohit.blu_mat.A2dpManager
-
-class A2dpManager(private val context: Context, private var eventSink: EventChannel.EventSink?) {
-
+class A2dpManager(private val context: Context,) {
+    private var eventSink: EventChannel.EventSink? = null
     private var bluetoothA2dp: BluetoothA2dp? = null
-    private val bluetoothAdapter: BluetoothAdapter? =
-        BluetoothAdapter.getDefaultAdapter()
+    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var lastConnectedAddress: String? = null
 
     private var isReady = false
@@ -51,6 +48,12 @@ class A2dpManager(private val context: Context, private var eventSink: EventChan
         context.registerReceiver(receiver, filter)
     }
 
+    private fun sendEvent(data: Map<String, Any?>) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            eventSink?.success(data)
+        }
+    }
+
     fun setEventSink(sink: EventChannel.EventSink?) {
         eventSink = sink
     }
@@ -72,7 +75,7 @@ class A2dpManager(private val context: Context, private var eventSink: EventChan
                     else -> "UNKNOWN"
                 }
 
-                eventSink?.success(
+                sendEvent(
                     mapOf(
                         "type" to "A2DP_CONNECTION",
                         "state" to stateStr,
@@ -115,7 +118,7 @@ class A2dpManager(private val context: Context, private var eventSink: EventChan
         val result = invokeHiddenMethod("connect", device)
         if (result) {
             lastConnectedAddress = deviceAddress
-            eventSink?.success(
+            sendEvent(
                 mapOf(
                     "type" to "A2DP_CONNECTION",
                     "state" to "CONNECTING",
@@ -135,7 +138,7 @@ class A2dpManager(private val context: Context, private var eventSink: EventChan
 
         val success = invokeHiddenMethod("disconnect", device)
         if (success) {
-            eventSink?.success(
+            sendEvent(
                 mapOf(
                     "type" to "A2DP_CONNECTION",
                     "state" to "DISCONNECTED",
