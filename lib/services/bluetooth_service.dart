@@ -7,7 +7,6 @@ class BluetoothService {
   /// 🔥 Unified stream (BLE + A2DP both come here)
   static Stream<Map<String, dynamic>> get events {
     return _eventChannel.receiveBroadcastStream().map((event) {
-      print("EVENT TYPE: ${event['type']}");
       return Map<String, dynamic>.from(event);
     });
   }
