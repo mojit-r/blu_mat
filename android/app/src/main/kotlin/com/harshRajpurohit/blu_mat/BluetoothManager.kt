@@ -27,6 +27,18 @@ class BluetoothManager(private val context: Context) {
     fun connectA2dp(address: String) = a2dpManager.connect(address)
     fun disconnectA2dp(address: String) = a2dpManager.disconnect(address)
 
+    fun readCharacteristic(service: String, char: String) {
+        bleManager.readCharacteristic(service, char)
+    }
+    
+    fun writeCharacteristic(service: String, char: String, value: ByteArray) {
+        bleManager.writeCharacteristic(service, char, value)
+    }
+    
+    fun enableNotifications(service: String, char: String) {
+        bleManager.enableNotifications(service, char)
+    }
+
     fun release() {
         a2dpManager.release()
         bleManager.release()

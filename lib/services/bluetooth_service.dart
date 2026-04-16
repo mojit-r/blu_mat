@@ -25,7 +25,6 @@ class BluetoothService {
     return await _channel.invokeMethod('disconnectA2dp', {'address': mac});
   }
 
-
   // ================= BLE =================
 
   static Future<void> startBleScan() async {
@@ -42,5 +41,31 @@ class BluetoothService {
 
   static Future<void> disconnectBle() async {
     await _channel.invokeMethod('disconnectBle');
+  }
+
+  static Future<void> readCharacteristic(String service, String char) async {
+    await _channel.invokeMethod('readCharacteristic', {
+      'service': service,
+      'char': char,
+    });
+  }
+
+  static Future<void> writeCharacteristic(
+    String service,
+    String char,
+    List<int> value,
+  ) async {
+    await _channel.invokeMethod('writeCharacteristic', {
+      'service': service,
+      'char': char,
+      'value': value,
+    });
+  }
+
+  static Future<void> enableNotifications(String service, String char) async {
+    await _channel.invokeMethod('enableNotifications', {
+      'service': service,
+      'char': char,
+    });
   }
 }

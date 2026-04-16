@@ -85,6 +85,31 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
+                "readCharacteristic" -> {
+                    val service = call.argument<String>("service")!!
+                    val char = call.argument<String>("char")!!
+                    bluetoothManager.readCharacteristic(service, char)
+                }
+
+                "writeCharacteristic" -> {
+                    val service = call.argument<String>("service")!!
+                    val char = call.argument<String>("char")!!
+                    val valueList = call.argument<List<Int>>("value")
+                    if (valueList == null) {
+                        result.error("INVALID_ARGS", "Value missing", null)
+                        return@setMethodCallHandler
+                    }
+                    
+                    val value = valueList.map { it.toByte() }.toByteArray()
+                    bluetoothManager.writeCharacteristic(service, char, value)
+                }
+
+                "enableNotifications" -> {
+                    val service = call.argument<String>("service")!!
+                    val char = call.argument<String>("char")!!
+                    bluetoothManager.enableNotifications(service, char)
+                }
+
                 else -> result.notImplemented()
             }
         }

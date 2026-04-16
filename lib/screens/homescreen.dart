@@ -1,3 +1,4 @@
+import 'package:blu_mat/provider/ble_provider.dart';
 import 'package:blu_mat/widgets/generic_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -49,117 +50,128 @@ class Homescreen extends StatelessWidget {
       ),
 
       // Body of the HomeScreen
-      body: SizedBox(
-        height:
-            mq.height -
-            AppBar().preferredSize.height -
-            MediaQuery.of(context).padding.top,
-        child: CustomScrollView(
-          slivers: [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Column(
-                children: [
-                  SizedBox(height: mq.height * 0.02),
-                  // Upper Tab for Connection Status
-                  Selector<BluetoothProvider, bool>(
-                    selector: (context, provider) => provider.isBleMode,
-                    builder: (context, isBleMode, _) => Center(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Header Connection Text
-                          Text(
-                            isBleMode
-                                ? 'Connect to BLE Device: '
-                                : 'Connect to A2DP Device',
-                            style: TextStyle(fontSize: mq.height * 0.024),
-                          ),
+      body: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Column(
+              children: [
+                SizedBox(height: mq.height * 0.02),
+                // Upper Tab for Connection Status
+                Consumer<BluetoothProvider>(
+                  builder: (context, value, _) => Center(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Header Connection Text
+                        Text(
+                          value.isBleMode
+                              ? 'Connect to BLE Device: '
+                              : 'Connect to A2DP Device',
+                          style: TextStyle(fontSize: mq.height * 0.024),
+                        ),
 
-                          SizedBox(height: mq.height * 0.01),
+                        SizedBox(height: mq.height * 0.01),
 
-                          if (isBleMode)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: GenericTextField(
-                                label: 'Ble Data',
-                                hintText: 'Enter Hex Code',
-                                icon: Icons.data_array,
-                                onChanged: (val) =>
-                                    print('Username updated: $val'),
-                              ),
+                        if (value.isBleMode) // value.isConnected)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: GenericTextField(
+                                    label: 'Ble Data',
+                                    hintText: 'Enter Hex Code',
+                                    icon: Icons.data_array,
+                                    onChanged: (val) => context
+                                        .read<BleProvider>()
+                                        .updateHex(val),
+                                  ),
+                                ),
+
+                                SizedBox(width: mq.width * 0.001),
+
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context
+                                        .read<BleProvider>()
+                                        .sendHexCommand();
+                                  },
+                                  child: const Icon(Icons.arrow_circle_right_rounded),
+                                ),
+                              ],
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
+                ),
 
-                  // bottom Tab for Networks
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: double.infinity,
-                      height: mq.height * 0.7,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.elliptical(
-                            mq.width * 0.1,
-                            mq.height * 0.04,
-                          ),
+                const Spacer(),
+
+                // bottom Tab for Networks
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    height: mq.height * 0.7,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.elliptical(
+                          mq.width * 0.1,
+                          mq.height * 0.04,
                         ),
                       ),
+                    ),
 
-                      child: Padding(
-                        padding: EdgeInsets.only(top: mq.height * 0.024),
-                        // Bluetooth List View Builder
-                        child: Consumer<BluetoothProvider>(
-                          builder: (context, value, child) => ListView.builder(
-                            itemCount: value.devices.length,
-                            itemBuilder: (context, index) {
-                              final device = value.devices[index];
-                              // custom Card
-                              return CustomCard(
-                                deviceName: value.isBleMode
-                                    ? device['name'] ?? 'Unknown Device'
-                                    : device['name'] ?? 'Unknown Device',
-                                deviceId: value.isBleMode
-                                    ? device['id']
-                                    : device['address'],
-                                isConnected:
+                    child: Padding(
+                      padding: EdgeInsets.only(top: mq.height * 0.024),
+                      // Bluetooth List View Builder
+                      child: Consumer<BluetoothProvider>(
+                        builder: (context, value, child) => ListView.builder(
+                          itemCount: value.devices.length,
+                          itemBuilder: (context, index) {
+                            final device = value.devices[index];
+                            // custom Card
+                            return CustomCard(
+                              deviceName: value.isBleMode
+                                  ? device['name'] ?? 'Unknown Device'
+                                  : device['name'] ?? 'Unknown Device',
+                              deviceId: value.isBleMode
+                                  ? device['id']
+                                  : device['address'],
+                              isConnected:
+                                  value.connectedDevice != null &&
+                                  (value.isBleMode
+                                      ? device['id'] == value.connectedDevice
+                                      : device['address'] ==
+                                            value.connectedDevice),
+                              onTap: () {
+                                final isThisDeviceConnected =
                                     value.connectedDevice != null &&
                                     (value.isBleMode
-                                        ? device['id'] == value.connectedDevice
-                                        : device['address'] ==
-                                              value.connectedDevice),
-                                onTap: () {
-                                  final isThisDeviceConnected =
-                                      value.connectedDevice != null &&
-                                      (value.isBleMode
-                                          ? value.connectedDevice ==
-                                                device['id']
-                                          : value.connectedDevice ==
-                                                device['address']);
+                                        ? value.connectedDevice == device['id']
+                                        : value.connectedDevice ==
+                                              device['address']);
 
-                                  if (isThisDeviceConnected) {
-                                    value.disconnect();
-                                  } else {
-                                    value.connectToDevice(device);
-                                  }
-                                },
-                              );
-                            },
-                          ),
+                                if (isThisDeviceConnected) {
+                                  value.disconnect();
+                                } else {
+                                  value.connectToDevice(device);
+                                }
+                              },
+                            );
+                          },
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
 
       floatingActionButton: Consumer<BluetoothProvider>(
