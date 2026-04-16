@@ -23,58 +23,66 @@ class BleProvider extends ChangeNotifier {
   String? _bleConnectedDeviceId;
   String? get bleConnectedDeviceId => _bleConnectedDeviceId;
 
-  bool get isBleConnected => _bleConnectedDeviceId != null;
+  bool _isBleConnected = false;
+  bool get isBleConnected => _isBleConnected;
 
   String? _lastBleConnectedDeviceId;
   bool _userInitiatedDisconnect = false;
 
-  bool _shouldAutoReconnect = true;
   int _retryCount = 0;
-  final int _maxRetries = 3;
-
-
-  // BLE Provider Constructor
-  BleProvider() {
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      tryReconnect();
-    });
-  }
+  final int _maxRetries = 5;
+  Timer? _reconnectTimer;
 
   void handleEvent(Map<String, dynamic> event) {
-    _sub = BluetoothService.events.listen((event) {
-      final type = event['type'];
+    final type = event['type'];
 
-      if (type == 'BLE_SCAN') {
-        final device = {
-          'name': (event['name'] ?? 'Unknown').toString(),
-          'id': event['id'].toString(),
-        };
+    if (type == 'BLE_SCAN') {
+      final device = {
+        'name': (event['name'] ?? 'Unknown').toString(),
+        'id': event['id'].toString(),
+      };
 
-        final exists = _bleDevices.any((d) => d['id'] == device['id']);
-        if (!exists) {
-          _bleDevices.add(device);
-          notifyListeners();
-        }
-      }
-
-      if (type == 'BLE_CONNECTION') {
-        final state = event['state'];
-        final id = event['id'];
-
-        if (state == 'CONNECTED') {
-          _bleConnectedDeviceId = id;
-        } else if (state == 'DISCONNECTED') {
-          _bleConnectedDeviceId = null;
-        }
+      final exists = _bleDevices.any((d) => d['id'] == device['id']);
+      if (!exists) {
+        _bleDevices.add(device);
         notifyListeners();
       }
-    });
+    }
+
+    if (type == 'BLE_CONNECTION') {
+      final state = event['state'];
+      final id = event['id'];
+
+      if (state == 'CONNECTED') {
+        _bleConnectedDeviceId = id;
+        _isBleConnected = true;
+        _retryCount = 0;
+        _reconnectTimer?.cancel();
+      } else if (state == 'DISCONNECTED') {
+        _bleConnectedDeviceId = null;
+        _isBleConnected = false;
+        if (!_userInitiatedDisconnect && _lastBleConnectedDeviceId != null) {
+          _scheduleReconnect();
+        }
+      } else if (state == 'ERROR') {
+        _bleConnectedDeviceId = null;
+        _isBleConnected = false;
+        debugPrint("BLE ERROR: ${event['status']}");
+        if (!_userInitiatedDisconnect && _lastBleConnectedDeviceId != null) {
+          _scheduleReconnect();
+        }
+      }
+      notifyListeners();
+    }
+    if (type == 'ERROR') {
+      log('BLE system error: ${event['message']}');
+    }
   }
 
   // --------------
   // Scanning
   // --------------
-  void startScan() async{
+  void startScan() async {
     if (isBleScanning) return;
     _bleDevices.clear();
     _isBleScanning = true;
@@ -82,17 +90,21 @@ class BleProvider extends ChangeNotifier {
 
     try {
       await BluetoothService.startBleScan();
-
-      Future.delayed(const Duration(seconds: 10), () {
-        stopScan();
-      });
+      Future.delayed(const Duration(seconds: 10), stopScan);
     } catch (e) {
       debugPrint('BLE Scan error: $e');
+      _isBleScanning = false;
+      notifyListeners();
     }
   }
 
   Future<void> stopScan() async {
-    await BluetoothService.stopBleScan();
+    if (!_isBleScanning) return;
+    try {
+      await BluetoothService.stopBleScan();
+    } catch (e) {
+      debugPrint('stopScan error: $e');
+    }
     _isBleScanning = false;
     notifyListeners();
   }
@@ -103,11 +115,14 @@ class BleProvider extends ChangeNotifier {
   Future<void> connectToBleDevice(String id) async {
     if (_bleConnectedDeviceId == id && isBleConnected) return;
 
-    await disconnect(userInitiated: false); 
+    if (isBleConnected) {
+      await disconnect(userInitiated: false);
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
 
     try {
       await BluetoothService.connectBle(id);
-
+      _retryCount = 0;
       _lastBleConnectedDeviceId = id;
       _userInitiatedDisconnect = false;
     } catch (e) {
@@ -150,35 +165,33 @@ class BleProvider extends ChangeNotifier {
   // }
 
   // tryReconnecting the existing devices feature
-  Future<void> tryReconnect() async {
-    log('retry 1');
-    // 1. Do not reconnect if user intentionally disconnected
-    if (_userInitiatedDisconnect) return;
-    log('user initited');
-    // 2. Do not reconnect while scanning
-    if (isBleScanning) return;
-    log('after scanning');
-    // 3. No last device to reconnect to
-    if (_lastBleConnectedDeviceId == null) return;
-    log('last connected');
-    // 4. If already connected — nothing to do
-    if (isBleConnected) return;
-    log('after connection');
-    if (_retryCount >= _maxRetries) return;
-    _retryCount++;
-    if (!_userInitiatedDisconnect &&
-        _shouldAutoReconnect &&
-        _lastBleConnectedDeviceId != null) {
-      stopScan();
-      connectToBleDevice(_lastBleConnectedDeviceId!);
-      log('---post retry---');
+  void _scheduleReconnect() {
+    if (_retryCount >= _maxRetries) {
+      log('Max reconnect attempts reached ($_maxRetries). Giving up.');
+      return;
     }
+
+    _retryCount++;
+
+    _reconnectTimer?.cancel();
+    final delaySeconds = _retryCount * 2; // backoff: 2s, 4s, 6s, 8s, 10s
+    log(
+      'Scheduling reconnect attempt $_retryCount/$_maxRetries in ${delaySeconds}s',
+    );
+
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+      // Re-check conditions at the time the delay fires
+      if (_userInitiatedDisconnect) return;
+      if (_isBleConnected) return;
+      if (_lastBleConnectedDeviceId == null) return;
+
+      connectToBleDevice(_lastBleConnectedDeviceId!);
+    });
   }
 
   // Disconnect
   Future<void> disconnect({bool userInitiated = false}) async {
     _userInitiatedDisconnect = userInitiated;
-    _shouldAutoReconnect = false;
     try {
       await BluetoothService.disconnectBle();
     } catch (e) {
@@ -186,10 +199,12 @@ class BleProvider extends ChangeNotifier {
     }
     if (userInitiated) {
       _lastBleConnectedDeviceId = null; // remove previously connected
+      _retryCount = 0;
+      _reconnectTimer?.cancel();
     }
+    _isBleConnected = false;
     _bleConnectedDeviceId = null;
     notifyListeners();
-    _shouldAutoReconnect = true;
   }
 
   @override

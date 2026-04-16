@@ -40,24 +40,22 @@ class A2dpProvider extends ChangeNotifier {
   }
 
   void handleEvent(Map<String, dynamic> event) {
-    _sub = BluetoothService.events.listen((event) {
-      final type = event['type'];
+    final type = event['type'];
 
-      if (type == 'A2DP_CONNECTION') {
-        final state = event['state'];
-        final address = event['address'];
-        debugPrint('EVENT: $state | $address');
+    if (type == 'A2DP_CONNECTION') {
+      final state = event['state'];
+      final address = event['address'];
+      debugPrint('EVENT: $state | $address');
 
-        if (state == 'CONNECTED') {
-          _a2dpConnectedAddress = address;
-          isAudioConnected = true;
-        } else if (state == 'DISCONNECTED') {
-          _a2dpConnectedAddress = null;
-          isAudioConnected = false;
-        }
-        notifyListeners();
+      if (state == 'CONNECTED') {
+        _a2dpConnectedAddress = address;
+        isAudioConnected = true;
+      } else if (state == 'DISCONNECTED') {
+        _a2dpConnectedAddress = null;
+        isAudioConnected = false;
       }
-    });
+      notifyListeners();
+    }
   }
 
   // -----------------------

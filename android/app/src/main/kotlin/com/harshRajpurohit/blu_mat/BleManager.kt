@@ -10,10 +10,10 @@ import androidx.core.app.ActivityCompat
 import io.flutter.plugin.common.EventChannel
 
 class BleManager(private val context: Context) {
-    private var eventSink: EventChannel.EventSink? = null
+    private var eventSink: EventChannel.EventSink? = null   
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
-    private val scanner: BluetoothLeScanner? = bluetoothAdapter.bluetoothLeScanner
+    private val scanner: BluetoothLeScanner? get() = bluetoothAdapter.bluetoothLeScanner
     private val discoveredDevices = mutableSetOf<String>()
 
     private var gatt: BluetoothGatt? = null
@@ -40,7 +40,6 @@ class BleManager(private val context: Context) {
             if (discoveredDevices.contains(address)) return
 
             discoveredDevices.add(address)
-
             sendEvent(
                 mapOf(
                     "type" to "BLE_SCAN",
@@ -61,7 +60,7 @@ class BleManager(private val context: Context) {
             return
         }
         val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY) // 🔥 IMPORTANT
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
         discoveredDevices.clear()
         scanner?.startScan(null, settings, scanCallback)
@@ -69,29 +68,71 @@ class BleManager(private val context: Context) {
     }
 
     fun stopScan() {
-        scanner?.stopScan(scanCallback)
+        try {
+            scanner?.stopScan(scanCallback)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun connect(deviceId: String) {
         stopScan()
+        closeGattProperly()
+
         val device = bluetoothAdapter.getRemoteDevice(deviceId)
-        sendEvent(
-            mapOf(
+        sendEvent(mapOf(
                 "type" to "BLE_CONNECTION",
                 "state" to "CONNECTING",
                 "id" to deviceId
             )
         )
-        gatt = device.connectGatt(context, false, gattCallback)
+        gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        } else {
+            device.connectGatt(context, false, gattCallback)
+        }
+    }
+
+    private fun closeGattProperly() {
+        gatt?.let { g ->
+            try { g.disconnect() } catch (e: Exception) { e.printStackTrace() }
+            try { g.close() } catch (e: Exception) { e.printStackTrace() }
+            gatt = null
+        }
+    }
+
+    private fun refreshDeviceCache(gatt: BluetoothGatt): Boolean {
+        return try {
+            val method = gatt.javaClass.getMethod("refresh")
+            method.invoke(gatt) as Boolean
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
-        override fun onConnectionStateChange(
-            gatt: BluetoothGatt,
-            status: Int,
-            newState: Int
-        ) {
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            val deviceId = gatt.device.address
+
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                try { gatt.close() } catch (e: Exception) { e.printStackTrace() }
+                this@BleManager.gatt = null
+                sendEvent(
+                    mapOf(
+                        "type" to "BLE_CONNECTION",
+                        "state" to "ERROR",
+                        "id" to deviceId,
+                        "status" to status
+                    )
+                )
+                return
+            }
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                refreshDeviceCache(gatt)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    gatt.discoverServices()
+                }, 500)
                 sendEvent(
                     mapOf(
                         "type" to "BLE_CONNECTION",
@@ -100,6 +141,8 @@ class BleManager(private val context: Context) {
                     )
                 )
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                try { gatt.close() } catch (e: Exception) { e.printStackTrace() }
+                this@BleManager.gatt = null
                 sendEvent(
                     mapOf(
                         "type" to "BLE_CONNECTION",
@@ -109,10 +152,19 @@ class BleManager(private val context: Context) {
                 )
             } 
         }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                sendEvent(mapOf(
+                    "type" to "BLE_CONNECTION",
+                    "state" to "SERVICES_DISCOVERED",
+                    "id" to gatt.device.address
+                ))
+            }
+        }
     }
 
     fun disconnect() {
-        if (gatt == null) return
         val deviceAddress = gatt?.device?.address
         sendEvent(
             mapOf(
@@ -121,13 +173,7 @@ class BleManager(private val context: Context) {
                 "id" to deviceAddress
             )
         )
-        try {
-            gatt?.disconnect()
-            gatt?.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        gatt = null
+        closeGattProperly()
     }
 
     private fun hasBleScanPermission(): Boolean {
