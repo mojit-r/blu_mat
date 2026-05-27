@@ -12,9 +12,14 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        ChangeNotifierProvider(create: (context) => BluetoothProvider()),
         ChangeNotifierProvider(create: (context) => BleProvider()),
         ChangeNotifierProvider(create: (context) => A2dpProvider()),
+        ChangeNotifierProvider(
+          create: (context) => BluetoothProvider(
+            context.read<BleProvider>(),
+            context.read<A2dpProvider>(),
+          ),
+        ),
       ],
       child: const MainApp(),
     ),

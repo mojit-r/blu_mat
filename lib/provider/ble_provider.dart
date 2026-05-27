@@ -39,7 +39,7 @@ class BleProvider extends ChangeNotifier {
   String? serviceId;
 
   // const service = "YOUR_SERVICE_UUID";
-  // const char = "YOUR_CHAR_UUID";    
+  // const char = "YOUR_CHAR_UUID";
 
   String _hexInput = '';
   String get hexInput => _hexInput;
@@ -136,55 +136,72 @@ class BleProvider extends ChangeNotifier {
     }
   }
 
+  // Future<void> _setupDevice(List<Map<String, dynamic>> services) async {
+  //   await Future.delayed(const Duration(milliseconds: 800));
+
+  //   for (var s in services) {
+  //     for (var c in s['characteristics']) {
+  //       final char = Map<String, dynamic>.from(c);
+  //       final props = char['properties'];
+  //       debugPrint(props.toString());
+
+  //       if ((props & 8) != 0 || (props & 4) != 0) {
+  //         writeChar = char['uuid'];
+  //         serviceId = s['uuid'];
+  //         debugPrint('✍️ WRITE CHAR FOUND: $writeChar');
+  //       }
+
+  //       if ((props & 16) != 0) {
+  //         notifyChar = char['uuid'];
+  //         debugPrint('📡 NOTIFY CHAR FOUND: $notifyChar');
+  //       }
+  //     }
+  //   }
+  //   if (serviceId == null || writeChar == null) {
+  //     debugPrint('❌ No WRITE characteristic found');
+  //     return;
+  //   }
+
+  //   // Enable live updates
+  //   // await BluetoothService.enableNotifications(service, char);
+  //   // if (notifyChar != null) {
+  //   //   await Future.delayed(const Duration(milliseconds: 500));
+  //   //   await BluetoothService.enableNotifications(serviceId!, notifyChar!);
+  //   // }
+
+  //   // Optional: get initial state (ONLY if needed)
+  //   // await BluetoothService.readCharacteristic(service, char);
+  // }
+
   Future<void> _setupDevice(List<Map<String, dynamic>> services) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
+    const targetService = 'fd34f551-28ea-4db1-b83d-d4dc4719c508';
+    const targetChar = 'fad2648e-5eba-4cf8-9275-68df18d432e0';
+
     for (var s in services) {
+      debugPrint("SERVICE ${s['uuid']}");
+
       for (var c in s['characteristics']) {
         final char = Map<String, dynamic>.from(c);
-        final props = char['properties'];
-        debugPrint(props.toString());
 
-        if ((props & 8) != 0 || (props & 4) != 0) {
-          writeChar = char['uuid'];
+        debugPrint("  CHAR ${char['uuid']} props=${char['properties']}");
+
+        if (s['uuid'].toString().toLowerCase() == targetService &&
+            char['uuid'].toString().toLowerCase() == targetChar) {
           serviceId = s['uuid'];
-          debugPrint('✍️ WRITE CHAR FOUND: $writeChar');
-        }
-
-        if ((props & 16) != 0) {
-          notifyChar = char['uuid'];
-          debugPrint('📡 NOTIFY CHAR FOUND: $notifyChar');
+          writeChar = char['uuid'];
         }
       }
     }
+
+    debugPrint('SERVICE=$serviceId');
+    debugPrint('WRITE=$writeChar');
+
     if (serviceId == null || writeChar == null) {
-      debugPrint('❌ No WRITE characteristic found');
+      debugPrint('❌ Specific characteristic not found');
       return;
     }
-    
-    _sendInitialCommand();
-    // Enable live updates
-    // await BluetoothService.enableNotifications(service, char);
-    // if (notifyChar != null) {
-    //   await Future.delayed(const Duration(milliseconds: 500));
-    //   await BluetoothService.enableNotifications(serviceId!, notifyChar!);
-    // }
-
-    // Optional: get initial state (ONLY if needed)
-    // await BluetoothService.readCharacteristic(service, char);
-  }
-
-  void _sendInitialCommand() async {
-    // await BluetoothService.writeCharacteristic(
-    //   service,
-    //   char,
-    //   hexToBytes('06320A50'),
-    // );
-    await BluetoothService.writeCharacteristic(
-      serviceId!,
-      writeChar!,
-      hexToBytes('09560000'),
-    );
   }
 
   void updateHex(String value) {
@@ -196,21 +213,17 @@ class BleProvider extends ChangeNotifier {
       debugPrint('❌ Service/Char not ready');
       return;
     }
-  
+
     if (_hexInput.isEmpty) {
       debugPrint('❌ Empty input');
       return;
     }
-  
+
     try {
       final bytes = hexToBytes(_hexInput);
       debugPrint('📤 Sending: $bytes');
-  
-      await BluetoothService.writeCharacteristic(
-        serviceId!,
-        writeChar!,
-        bytes,
-      );
+
+      await BluetoothService.writeCharacteristic(serviceId!, writeChar!, bytes);
     } catch (e) {
       debugPrint('❌ Invalid HEX: $e');
     }
