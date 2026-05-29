@@ -176,31 +176,82 @@ class BleProvider extends ChangeNotifier {
   Future<void> _setupDevice(List<Map<String, dynamic>> services) async {
     await Future.delayed(const Duration(milliseconds: 800));
 
-    const targetService = 'fd34f551-28ea-4db1-b83d-d4dc4719c508';
-    const targetChar = 'fad2648e-5eba-4cf8-9275-68df18d432e0';
+    // SoulStrip preferred UUIDs
+    const soulService = 'fd34f551-28ea-4db1-b83d-d4dc4719c508';
+    const soulChar = 'fad2648e-5eba-4cf8-9275-68df18d432e0';
+
+    serviceId = null;
+    writeChar = null;
+    notifyChar = null;
+
+    String? genericWrite;
+    String? genericNotify;
+    String? genericService;
 
     for (var s in services) {
-      debugPrint("SERVICE ${s['uuid']}");
+      final serviceUuid = s['uuid'].toString().toLowerCase();
+
+      debugPrint('SERVICE $serviceUuid');
 
       for (var c in s['characteristics']) {
         final char = Map<String, dynamic>.from(c);
 
-        debugPrint("  CHAR ${char['uuid']} props=${char['properties']}");
+        final charUuid = char['uuid'].toString().toLowerCase();
+        final props = char['properties'];
 
-        if (s['uuid'].toString().toLowerCase() == targetService &&
-            char['uuid'].toString().toLowerCase() == targetChar) {
+        debugPrint('  CHAR $charUuid props=$props');
+
+        // -----------------
+        // 1. SoulStrip exact match (highest priority)
+        // -----------------
+        if (serviceUuid == soulService && charUuid == soulChar) {
           serviceId = s['uuid'];
           writeChar = char['uuid'];
+
+          debugPrint('🔥 SoulStrip write char found');
+        }
+
+        // -----------------
+        // 2. Generic write fallback
+        // -----------------
+        if (genericWrite == null && ((props & 8) != 0 || (props & 4) != 0)) {
+          genericWrite = char['uuid'];
+          genericService = s['uuid'];
+
+          debugPrint('✍️ Generic WRITE found');
+        }
+
+        // -----------------
+        // 3. Generic notify
+        // -----------------
+        if (genericNotify == null && ((props & 16) != 0 || (props & 32) != 0)) {
+          genericNotify = char['uuid'];
+
+          debugPrint('📡 Generic NOTIFY found');
         }
       }
     }
 
+    // fallback if SoulStrip not found
+    serviceId ??= genericService;
+    writeChar ??= genericWrite;
+    notifyChar = genericNotify;
+
     debugPrint('SERVICE=$serviceId');
     debugPrint('WRITE=$writeChar');
+    debugPrint('NOTIFY=$notifyChar');
 
     if (serviceId == null || writeChar == null) {
-      debugPrint('❌ Specific characteristic not found');
+      debugPrint('❌ No writable characteristic found');
       return;
+    }
+
+    // Enable notifications if available
+    if (notifyChar != null) {
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      debugPrint('📡 Enabling notifications...');
+      await BluetoothService.enableNotifications(serviceId!, notifyChar!);
     }
   }
 
