@@ -66,7 +66,7 @@ class Homescreen extends StatelessWidget {
                         // Header Connection Text
                         Text(
                           value.isBleMode
-                              ? 'Connect to BLE Device: '
+                              ? 'Connect to BLE Device'
                               : 'Connect to A2DP Device',
                           style: TextStyle(fontSize: mq.height * 0.024),
                         ),
@@ -89,7 +89,7 @@ class Homescreen extends StatelessWidget {
                                   ),
                                 ),
 
-                                SizedBox(width: mq.width * 0.001),
+                                SizedBox(width: mq.width * 0.008),
 
                                 ElevatedButton(
                                   onPressed: () {
